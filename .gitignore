@@ -1,0 +1,31 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# IDE files
+.idea/
+.vscode/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Large local/model artifacts
+dataset_RAG/
+lora_adapters/
+merged_model/
+
+
+# Token / secret files
+token_*.txt
+*.token
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
