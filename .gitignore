@@ -29,3 +29,10 @@ token_*.txt
 # OS files
 .DS_Store
 Thumbs.db
+
+# Publish reports as PDF; keep editable Word sources local
+*.docx
+*.doc
+~$*
+
+./summary.md

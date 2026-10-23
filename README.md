@@ -1,119 +1,109 @@
-# AI Model as a Search Assistant for Medication Instructions
+# Serbian Medication Leaflet Assistant
 
-This repository contains a research and implementation project focused on building an AI-based question-answering system for medication instructions. The system is designed for the Serbian language and combines a retrieval-augmented generation (RAG) pipeline with parameter-efficient fine-tuning using QLoRA.
+**English** | [Srpski](docs/sr/README.md)
 
-The goal is to provide accurate, context-aware answers to questions related to drug instructions, dosage, warnings, contraindications, and safe usage, while reducing hallucinations by grounding the model in relevant retrieved sources.
+A seminar research project combining retrieval-augmented generation (RAG) over Serbian medicine package leaflets with QLoRA fine-tuning of Llama 3.1 8B Instruct. This repository contains the shared implementation, training data, a saved retrieval index, and reports in Serbian and English.
 
-## Overview
+The application works with Serbian queries and documents. The English edition provides documentation for international readers and reviewers; it is not a separately trained English-language application. Notebook comments, prompts, and recorded outputs retain their original language.
 
-Large language models (LLMs) are highly capable, but in domain-specific tasks such as medicine, they can generate answers that sound convincing while being factually incorrect. To address this issue, the project integrates:
+## Reports and resources
 
-- a document retrieval layer,
-- a vector database for semantic search,
-- a base LLM adapted with QLoRA,
-- a generation pipeline grounded in retrieved evidence.
+| Resource | Description |
+| --- | --- |
+| [English paper — PDF](docs/en/paper.pdf) | Revised version for review, updated 23 October 2026 |
+| [Serbian paper — PDF](docs/sr/seminarski_rad.pdf) | Original submitted report, preserved unchanged |
+| [Serbian project guide](docs/sr/README.md) | Overview and reproduction instructions in Serbian |
+| [Project summary](summary.md) | Implementation contribution, technical choices, evaluation, and next steps |
+| [Hugging Face model](https://huggingface.co/vekiii/medical-assistent-serbian-model) | Model artifact location |
+| [Hugging Face Space](https://huggingface.co/spaces/vekiii/medical-assistant-serbian) | Experimental deployment; availability depends on its runtime and hardware quota |
 
-The final system is intended to function as a search assistant that answers medication-related queries with higher factual reliability than a standalone generative model.
+The English paper corrects references, technical descriptions, and interpretation of results. It is therefore not an exact translation of the archived Serbian paper. Recorded numerical results and verbatim model outputs are retained. The English paper has 17 footnotes and the Serbian paper 18. Reports are published as PDFs; editable Word files are excluded from Git.
 
-## System architecture
+## Scope and limitations
 
-The project follows a standard RAG-based design:
+This is a research prototype. Its examples document factual errors, incomplete answers, confusion between medicines, inconsistent script use, and failures to follow system instructions. The results do not establish clinical reliability or readiness for unsupervised medical use.
 
-1. Relevant pharmaceutical documents are converted into chunks.
-2. Text chunks are embedded into a vector space.
-3. A retriever searches the vector database for semantically similar content.
-4. The most relevant results are injected into the model context.
-5. A fine-tuned LLM generates a final answer grounded in the retrieved passages.
+The practical contribution is an implemented pipeline under limited GPU resources and an analysis of its failure modes. Numerical evaluation covers only **four questions**:
 
-This architecture is particularly useful in clinical and pharmaceutical domains, where factual precision and traceability are essential.
+- Retrieval relevance is assigned by source PDF filename. A chunk from the expected leaflet may count as relevant without containing the answer.
+- The Pressing retrieval query includes “sirup”, whereas the generation query does not. These rows evaluate different inputs.
+- Semantic similarity does not establish factual accuracy. The default ROUGE tokenizer used by the notebook is not adapted to Serbian scripts.
+- The comparison does not isolate the effects of retrieval, fine-tuning, and quantization.
+- **591 input fields contain the literal string `nan`**, which the training formatter includes in prompts. The original data and scores are retained to document the experiment; clean these placeholders before a new training run.
 
 ## Repository structure
 
 ```text
-projekat/
-├── dataset_LoRA/                            # JSON datasets used for LoRA fine-tuning
-├── dataset_RAG/                             # Not included in GitHub uploads; contains PDF documents for retrieval
-├── lora_adapters/                           # Not included in GitHub uploads
-├── merged_model/                            # Final merged model; to be published on Hugging Face later
-├── notebooks/
-│   ├── app.ipynb                           # Final model inference and usage
-│   ├── dataset_LoRA.ipynb                  # Dataset concatenation and preparation
-│   ├── evaluation.ipynb                    # Numerical evaluation and benchmarking
-│   ├── final_train_dataset_EDA.ipynb       # Exploratory data analysis for the fine-tuning set
-│   ├── LLM_finetuning.ipynb                # QLoRA fine-tuning and LoRA adapter merging
-│   └── vector_database_creation.ipynb      # FAISS vector database creation
+.
+├── README.md                         # English overview and instructions
+├── docs/
+│   ├── en/paper.pdf                  # Revised English paper
+│   └── sr/
+│       ├── README.md                 # Serbian overview and instructions
+│       └── seminarski_rad.pdf        # Original Serbian paper
+├── notebooks/                       # Shared implementation
+│   ├── dataset_LoRA.ipynb
+│   ├── final_train_dataset_EDA.ipynb
+│   ├── LLM_finetuning.ipynb
+│   ├── vector_database_creation.ipynb
+│   ├── app.ipynb
+│   └── evaluation.ipynb
+├── dataset_LoRA/
+│   ├── squad-sr-cyr.json
+│   ├── squad-sr-lat.json
+│   └── final_train_dataset.json      # JSON Lines despite the .json extension
 ├── vector_database/
-│   ├── index.faiss                         # FAISS index
-│   └── index.pkl                           # Embedding / metadata store
-├── izvestaj.pdf                            # Serbian version of the project report
-├── report.pdf                              # English version of the project report
-├── README.md
-├── token_Llama.txt                         # Local token file, not intended for GitHub
-├── token_LoRA_datasetovi.txt               # Local token file, not intended for GitHub
-└── .gitignore                              # Local ignore rules for large or sensitive files
+│   ├── index.faiss
+│   └── index.pkl
+└── .gitignore
 ```
 
-## Data and artifacts
+Local directories `dataset_RAG/`, `lora_adapters/`, and `merged_model/` are excluded from Git. The 54 source leaflet PDFs and model weights are not included in this Git repository. The saved FAISS index and its metadata are included.
 
-### `dataset_LoRA/`
-This directory contains the JSON files used for LoRA fine-tuning. The datasets were prepared and combined into a unified training set for domain adaptation of the base LLM.
+## Implementation and data
 
-### `dataset_RAG/`
-This folder contains PDFs used for retrieval in the RAG pipeline. It is intentionally excluded from GitHub because it is not intended for public publication.
+1. **Documents:** ALIMS leaflet PDFs are converted to Markdown using `pymupdf4llm` and split by headings with `MarkdownHeaderTextSplitter`. The recorded run produced 1,769 chunks.
+2. **Retrieval:** `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` produces 768-dimensional embeddings. Despite its name, the multilingual checkpoint uses an XLM-RoBERTa backbone. The code uses default FAISS Euclidean-distance search without explicit embedding normalization, retrieving five chunks in the application.
+3. **Adaptation:** 3,152 general Serbian instruction/QA examples are used for QLoRA training, rather than a dedicated medical training set. Training uses 4-bit NF4, double quantization, Float16 computation, rank 16, alpha 32, and one epoch (394 steps).
+4. **Inference:** the merged model is loaded in 8-bit precision. The saved configuration uses `do_sample=False` and a 512-token output limit. Conversation history supports query reformulation for retrieval; the answer prompt receives the current question and retrieved text.
+5. **Instructions:** the prompt requests context-grounded answers, matching script, simpler language, and a disclaimer. These behaviors are not independently enforced. Chunk metadata are stored but are not explicitly inserted into the generation prompt.
 
-### `lora_adapters/`
-This folder stores the trained LoRA adapter weights. It is excluded from the public repository because it contains model artifacts generated locally.
+The training corpus combines 500 Cyrillic and 500 Latin [SQuAD examples](https://www.kaggle.com/datasets/aleksacvetanovic/squad-sr), 1,000 Cyrillic [saillab Alpaca examples](https://huggingface.co/datasets/saillab/alpaca-serbian-cleaned), 1,000 Latin [datatab Alpaca examples](https://huggingface.co/datasets/datatab/alpaca-cleaned-serbian-full), and 152 Serbian [Aya examples](https://huggingface.co/datasets/CohereLabs/aya_dataset). The instruction-field script split is 52.3% Cyrillic and 47.7% Latin.
 
-### `merged_model/`
-This directory contains the final merged model, which is expected to be published on Hugging Face after the project is finalized. The model link should be added here once available.
+## Running the project
 
-- Hugging Face model: [https://huggingface.co/vekiii/medical-assistent-serbian-model]
-- Hugging Face Space: [https://huggingface.co/vekiii/spaces] - Medical Assistant Serbian
-### `vector_database/`
-The vector database contains the embeddings and index used for semantic retrieval. It stores the FAISS index and metadata required to find the most relevant context for a given user question.
+The notebooks are the executable entry points. They were developed around Google Colab and Google Drive, rather than as a packaged command-line application. Dependencies are installed in notebook cells. There is no pinned, independently validated environment; a new runtime may require dependency adjustments.
 
-## Notebooks
+### Prerequisites and paths
 
-The project notebooks are organized by functional stage:
+- Use a GPU runtime for training or inference. The reported training setup uses an NVIDIA T4 with approximately 15–16 GB VRAM. Model merging also requires sufficient CPU RAM and disk space.
+- Obtain access to the gated base model and authenticate with your own Hugging Face account where required. Keep credentials out of committed notebook cells and outputs.
+- Mount Google Drive. The default project directory in the Colab notebooks is `/content/drive/MyDrive/NLP_proyect`.
+- Change `base_path` in `dataset_LoRA.ipynb` to the directory containing the two SQuAD JSON files; its original value points to a local Windows cache.
+- The training notebook expects `datasets/final_train_dataset.json` under the Drive project directory. Index creation expects `datasets/dataset_RAG`. The repository layout differs from the original Drive layout: copy inputs to those locations or edit the path variables.
+- Set `db_path`, `model_id`/`model_path`, adapter paths, and output directories consistently. The application requires a compatible merged model and vector index. To use the Hugging Face model, set its identifier instead of the default Drive model directory.
 
-- `app.ipynb`: runs inference with the final model and demonstrates the end-to-end usage workflow.
-- `dataset_LoRA.ipynb`: merges and prepares data for the LoRA fine-tuning set.
-- `evaluation.ipynb`: evaluates model quality using numerical metrics.
-- `final_train_dataset_EDA.ipynb`: analyzes the dataset before training.
-- `LLM_finetuning.ipynb`: performs QLoRA fine-tuning and merges adapters with the base LLM.
-- `vector_database_creation.ipynb`: creates the retrieval index used by the RAG component.
+### Notebook order
 
-## Methods used
+| Step | Notebook | Purpose |
+| --- | --- | --- |
+| 1 | [dataset_LoRA.ipynb](notebooks/dataset_LoRA.ipynb) | Sample source datasets and create the combined JSONL file |
+| 2 | [final_train_dataset_EDA.ipynb](notebooks/final_train_dataset_EDA.ipynb) | Inspect missing values, lengths, scripts, and frequent terms |
+| 3 | [LLM_finetuning.ipynb](notebooks/LLM_finetuning.ipynb) | Train adapters and merge them with base weights shard by shard |
+| 4 | [vector_database_creation.ipynb](notebooks/vector_database_creation.ipynb) | Build the FAISS index from local leaflet PDFs |
+| 5 | [app.ipynb](notebooks/app.ipynb) | Load the model and index and run conversation examples |
+| 6 | [evaluation.ipynb](notebooks/evaluation.ipynb) | Evaluate retrieval and answers to isolated questions |
 
-This project incorporates several modern NLP and generative AI techniques:
+Index creation is independent of fine-tuning. With existing model and index artifacts, start with `app.ipynb` after configuring dependencies and paths. The supplied index can be reused without rebuilding the source PDFs. Only load pickle index metadata from a trusted source; the notebook explicitly enables deserialization.
 
-- Transformer-based language models
-- Sentence embedding models for semantic retrieval
-- FAISS for efficient vector search
-- LoRA and QLoRA for memory-efficient fine-tuning
-- Retrieval-augmented generation for factual grounding
+Run cells in order and reset `chat_history` between independent conversations. The documented interface is notebook-based; Gradio imports and the Space link do not establish a verified production interface. New runs, particularly after cleaning data or changing dependencies, may differ from the recorded results.
 
-The combination of these methods is appropriate for a domain-specific QA use case where the model needs to answer using reliable, context-based evidence rather than relying only on memorized patterns.
+## Further work
 
-## Usage workflow
+The first planned experiment is **base model + RAG versus fine-tuned model + the same RAG**. Use identical test questions, prompts, retrieved passages, model precision, and decoding settings, with conversation history reset between independent cases. Compare factual correctness, completeness, Serbian-language quality, and instruction following. This controlled comparison has not yet been performed; it is needed to isolate the benefit of additional fine-tuning. A separate end-to-end comparison can then measure how each model affects history-aware query reformulation and retrieval.
 
-To reproduce or continue the project locally:
+Priorities are a larger independently annotated test set, expert factual assessment, controlled comparisons of base/fine-tuned models with/without RAG, script-aware metrics, and training-data cleaning. Further experiments can examine matching training and inference prompt formats, hybrid retrieval, explicit medicine/source metadata, reranking, and adaptive retrieval depth.
 
-1. Prepare the source datasets and generate the final LoRA dataset.
-2. Run the EDA notebook to inspect dataset quality and structure.
-3. Execute the QLoRA fine-tuning workflow.
-4. Merge the trained adapters into the base model.
-5. Build the FAISS vector database.
-6. Run inference through `app.ipynb`.
+## Licensing
 
-## Project status
-
-This README represents the current public-facing base version of the project. It will be refined after the final model, public artifacts, and links are added.
-
-## License
-
-No explicit license has been declared yet. A license should be added before publishing the repository publicly.
-
-## Notes
-
-This project is intended as a practical implementation of a domain-specific QA system in Serbian, combining research ideas from modern transformer architectures, efficient fine-tuning, and retrieval-based augmentation. The current implementation is a strong foundation for future improvements, including better evaluation, more robust retrieval, and production-quality deployment.
+No repository-wide license has been declared. The model, datasets, and source documents have their own terms; their inclusion or links here do not replace those terms.
