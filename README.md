@@ -4,7 +4,7 @@
 
 A seminar research project combining retrieval-augmented generation (RAG) over Serbian medicine package leaflets with QLoRA fine-tuning of Llama 3.1 8B Instruct. This repository contains the shared implementation, training data, a saved retrieval index, and reports in Serbian and English.
 
-The application works with Serbian queries and documents. The English edition provides documentation for international readers and reviewers; it is not a separately trained English-language application. Notebook comments, prompts, and recorded outputs retain their original language.
+The application works with Serbian queries and documents. The English edition provides documentation for international readers and reviewers; it is not a separately trained English-language application. Notebook explanations and comments are in English; Serbian prompts, examples, docstrings, and recorded outputs retain their original language.
 
 ## Reports and resources
 
@@ -42,12 +42,12 @@ The practical contribution is an implemented pipeline under limited GPU resource
 │       ├── README.md                 # Serbian overview and instructions
 │       └── seminarski_rad.pdf        # Original Serbian paper
 ├── notebooks/                       # Shared implementation
-│   ├── dataset_LoRA.ipynb
-│   ├── final_train_dataset_EDA.ipynb
-│   ├── LLM_finetuning.ipynb
-│   ├── vector_database_creation.ipynb
-│   ├── app.ipynb
-│   └── evaluation.ipynb
+│   ├── 01_prepare_training_data.ipynb
+│   ├── 02_explore_training_data.ipynb
+│   ├── 03_finetune_and_merge.ipynb
+│   ├── 04_build_retrieval_index.ipynb
+│   ├── 05_run_assistant.ipynb
+│   └── 06_evaluate.ipynb
 ├── dataset_LoRA/
 │   ├── squad-sr-cyr.json
 │   ├── squad-sr-lat.json
@@ -79,22 +79,24 @@ The notebooks are the executable entry points. They were developed around Google
 - Use a GPU runtime for training or inference. The reported training setup uses an NVIDIA T4 with approximately 15–16 GB VRAM. Model merging also requires sufficient CPU RAM and disk space.
 - Obtain access to the gated base model and authenticate with your own Hugging Face account where required. Keep credentials out of committed notebook cells and outputs.
 - Mount Google Drive. The default project directory in the Colab notebooks is `/content/drive/MyDrive/NLP_proyect`.
-- Change `base_path` in `dataset_LoRA.ipynb` to the directory containing the two SQuAD JSON files; its original value points to a local Windows cache.
+- Change `base_path` in `01_prepare_training_data.ipynb` to the directory containing the two SQuAD JSON files; its original value points to a local Windows cache.
 - The training notebook expects `datasets/final_train_dataset.json` under the Drive project directory. Index creation expects `datasets/dataset_RAG`. The repository layout differs from the original Drive layout: copy inputs to those locations or edit the path variables.
 - Set `db_path`, `model_id`/`model_path`, adapter paths, and output directories consistently. The application requires a compatible merged model and vector index. To use the Hugging Face model, set its identifier instead of the default Drive model directory.
 
 ### Notebook order
 
+See the [notebook guide](notebooks/README.md) for entry points, conversation boundaries, and a mapping from the original filenames cited in the papers.
+
 | Step | Notebook | Purpose |
 | --- | --- | --- |
-| 1 | [dataset_LoRA.ipynb](notebooks/dataset_LoRA.ipynb) | Sample source datasets and create the combined JSONL file |
-| 2 | [final_train_dataset_EDA.ipynb](notebooks/final_train_dataset_EDA.ipynb) | Inspect missing values, lengths, scripts, and frequent terms |
-| 3 | [LLM_finetuning.ipynb](notebooks/LLM_finetuning.ipynb) | Train adapters and merge them with base weights shard by shard |
-| 4 | [vector_database_creation.ipynb](notebooks/vector_database_creation.ipynb) | Build the FAISS index from local leaflet PDFs |
-| 5 | [app.ipynb](notebooks/app.ipynb) | Load the model and index and run conversation examples |
-| 6 | [evaluation.ipynb](notebooks/evaluation.ipynb) | Evaluate retrieval and answers to isolated questions |
+| 1 | [01_prepare_training_data.ipynb](notebooks/01_prepare_training_data.ipynb) | Sample source datasets and create the combined JSONL file |
+| 2 | [02_explore_training_data.ipynb](notebooks/02_explore_training_data.ipynb) | Inspect missing values, lengths, scripts, and frequent terms |
+| 3 | [03_finetune_and_merge.ipynb](notebooks/03_finetune_and_merge.ipynb) | Train adapters and merge them with base weights shard by shard |
+| 4 | [04_build_retrieval_index.ipynb](notebooks/04_build_retrieval_index.ipynb) | Build the FAISS index from local leaflet PDFs |
+| 5 | [05_run_assistant.ipynb](notebooks/05_run_assistant.ipynb) | Load the model and index and run conversation examples |
+| 6 | [06_evaluate.ipynb](notebooks/06_evaluate.ipynb) | Evaluate retrieval and answers to isolated questions |
 
-Index creation is independent of fine-tuning. With existing model and index artifacts, start with `app.ipynb` after configuring dependencies and paths. The supplied index can be reused without rebuilding the source PDFs. Only load pickle index metadata from a trusted source; the notebook explicitly enables deserialization.
+Index creation is independent of fine-tuning. With existing model and index artifacts, start with `05_run_assistant.ipynb` after configuring dependencies and paths. The supplied index can be reused without rebuilding the source PDFs. Only load pickle index metadata from a trusted source; the notebook explicitly enables deserialization.
 
 Run cells in order and reset `chat_history` between independent conversations. The documented interface is notebook-based; Gradio imports and the Space link do not establish a verified production interface. New runs, particularly after cleaning data or changing dependencies, may differ from the recorded results.
 

@@ -4,7 +4,7 @@
 
 Seminarski projekat kombinuje RAG pretragu uputstava za lekove na srpskom jeziku i QLoRA fino podešavanje modela Llama 3.1 8B Instruct. Repo sadrži zajednički kod, podatke za obuku, indeks za pretragu i radove na srpskom i engleskom jeziku.
 
-Aplikacija je namenjena srpskom jeziku. Englesko izdanje predstavlja dokumentaciju i rad za međunarodne čitaoce i recenzente; oba izdanja koriste isti kod i model. Komentari, upiti i izlazi eksperimenata zadržavaju izvorni jezik.
+Aplikacija je namenjena srpskom jeziku. Englesko izdanje predstavlja dokumentaciju i rad za međunarodne čitaoce i recenzente; oba izdanja koriste isti kod i model. Objašnjenja i komentari notebookova su na engleskom; srpski promptovi, primeri, docstringovi i sačuvani izlazi zadržavaju izvorni jezik.
 
 ## Radovi i resursi
 
@@ -67,22 +67,24 @@ Notebookovi su ulazne tačke za izvršavanje. Razvijani su uz Google Colab i Goo
 - Za obuku i inferenciju koristi GPU okruženje. Opisani trening koristi NVIDIA T4 sa približno 15–16 GB VRAM-a. Spajanje modela zahteva i dovoljno sistemskog RAM-a i prostora na disku.
 - Obezbedi pristup osnovnom Llama modelu i autentifikuj se sopstvenim Hugging Face nalogom kada je potrebno. Tokene nemoj čuvati u verzionisanim ćelijama ili izlazima notebookova.
 - Poveži Google Drive. Podrazumevana projektna putanja je `/content/drive/MyDrive/NLP_proyect`.
-- U `dataset_LoRA.ipynb` postavi `base_path` na direktorijum sa dva SQuAD JSON fajla; originalna vrednost pokazuje na lokalni Windows keš.
+- U `01_prepare_training_data.ipynb` postavi `base_path` na direktorijum sa dva SQuAD JSON fajla; originalna vrednost pokazuje na lokalni Windows keš.
 - Trening notebook očekuje `datasets/final_train_dataset.json`, a kreiranje indeksa `datasets/dataset_RAG` unutar Drive projekta. Repo i originalna Drive struktura razlikuju se: kopiraj ulaze na očekivane lokacije ili promeni promenljive putanja.
 - Uskladi `db_path`, `model_id`/`model_path`, putanje adaptera i izlazne direktorijume. Aplikacija zahteva kompatibilan objedinjeni model i indeks. Za Hugging Face model postavi odgovarajući identifikator umesto podrazumevane Drive putanje.
 
 ### Redosled notebookova
 
+Pogledaj [uputstvo za notebookove](../../notebooks/README.md) za početne tačke, granice razgovora i vezu između originalnih naziva iz radova i novih naziva fajlova.
+
 | Korak | Notebook | Namena |
 | --- | --- | --- |
-| 1 | [dataset_LoRA.ipynb](../../notebooks/dataset_LoRA.ipynb) | Uzorkovanje izvora i formiranje objedinjenog JSONL fajla |
-| 2 | [final_train_dataset_EDA.ipynb](../../notebooks/final_train_dataset_EDA.ipynb) | Provera praznih vrednosti, dužina, pisma i učestalih pojmova |
-| 3 | [LLM_finetuning.ipynb](../../notebooks/LLM_finetuning.ipynb) | Obuka adaptera i spajanje sa osnovnim težinama po delovima |
-| 4 | [vector_database_creation.ipynb](../../notebooks/vector_database_creation.ipynb) | Kreiranje FAISS indeksa iz lokalnih PDF uputstava |
-| 5 | [app.ipynb](../../notebooks/app.ipynb) | Učitavanje modela i indeksa i pokretanje razgovora |
-| 6 | [evaluation.ipynb](../../notebooks/evaluation.ipynb) | Evaluacija pretrage i odgovora na izolovana pitanja |
+| 1 | [01_prepare_training_data.ipynb](../../notebooks/01_prepare_training_data.ipynb) | Uzorkovanje izvora i formiranje objedinjenog JSONL fajla |
+| 2 | [02_explore_training_data.ipynb](../../notebooks/02_explore_training_data.ipynb) | Provera praznih vrednosti, dužina, pisma i učestalih pojmova |
+| 3 | [03_finetune_and_merge.ipynb](../../notebooks/03_finetune_and_merge.ipynb) | Obuka adaptera i spajanje sa osnovnim težinama po delovima |
+| 4 | [04_build_retrieval_index.ipynb](../../notebooks/04_build_retrieval_index.ipynb) | Kreiranje FAISS indeksa iz lokalnih PDF uputstava |
+| 5 | [05_run_assistant.ipynb](../../notebooks/05_run_assistant.ipynb) | Učitavanje modela i indeksa i pokretanje razgovora |
+| 6 | [06_evaluate.ipynb](../../notebooks/06_evaluate.ipynb) | Evaluacija pretrage i odgovora na izolovana pitanja |
 
-Kreiranje indeksa nezavisno je od obuke. Uz postojeći model i indeks možeš početi od `app.ipynb` nakon podešavanja zavisnosti i putanja. Sačuvani indeks omogućava inferenciju bez ponovne obrade PDF-ova. Učitavaj pickle metapodatke samo iz pouzdanog izvora; notebook eksplicitno dozvoljava deserijalizaciju.
+Kreiranje indeksa nezavisno je od obuke. Uz postojeći model i indeks možeš početi od `05_run_assistant.ipynb` nakon podešavanja zavisnosti i putanja. Sačuvani indeks omogućava inferenciju bez ponovne obrade PDF-ova. Učitavaj pickle metapodatke samo iz pouzdanog izvora; notebook eksplicitno dozvoljava deserijalizaciju.
 
 Izvršavaj ćelije redom i resetuj `chat_history` između nezavisnih razgovora. Dokumentovani interfejs je izlaz notebooka; Gradio importi i Space link ne znače da je potvrđen stabilan produkcioni interfejs. Novi rezultati, naročito posle čišćenja podataka ili promene biblioteka, mogu se razlikovati od objavljenih.
 
