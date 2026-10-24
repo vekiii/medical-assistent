@@ -83,16 +83,33 @@ Pogledaj [uputstvo za notebookove](../../notebooks/README.md) za početne tačke
 | 4 | [04_build_retrieval_index.ipynb](../../notebooks/04_build_retrieval_index.ipynb) | Kreiranje FAISS indeksa iz lokalnih PDF uputstava |
 | 5 | [05_run_assistant.ipynb](../../notebooks/05_run_assistant.ipynb) | Učitavanje modela i indeksa i pokretanje razgovora |
 | 6 | [06_evaluate.ipynb](../../notebooks/06_evaluate.ipynb) | Evaluacija pretrage i odgovora na izolovana pitanja |
+| 7 | [07_evaluate.ipynb](../../notebooks/07_evaluate.ipynb) | Fino podešeni model: test 1 sa RAG-om i test 2 bez RAG-a |
+| 8 | [08_evaluate_base.ipynb](../../notebooks/08_evaluate_base.ipynb) | Osnovni model u 8 bita: test 3 bez RAG-a i test 4 sa RAG-om |
 
 Kreiranje indeksa nezavisno je od obuke. Uz postojeći model i indeks možeš početi od `05_run_assistant.ipynb` nakon podešavanja zavisnosti i putanja. Sačuvani indeks omogućava inferenciju bez ponovne obrade PDF-ova. Učitavaj pickle metapodatke samo iz pouzdanog izvora; notebook eksplicitno dozvoljava deserijalizaciju.
 
 Izvršavaj ćelije redom i resetuj `chat_history` između nezavisnih razgovora. Dokumentovani interfejs je izlaz notebooka; Gradio importi i Space link ne znače da je potvrđen stabilan produkcioni interfejs. Novi rezultati, naročito posle čišćenja podataka ili promene biblioteka, mogu se razlikovati od objavljenih.
 
+## Naknadna evaluacija
+
+[Notebook 07](../../notebooks/07_evaluate.ipynb) i [notebook 08](../../notebooks/08_evaluate_base.ipynb) uspešno su izvršili četiri testa 24. oktobra 2026: osnovni i fino podešeni model, svaki sa i bez RAG-a. Sačuvano je svih 16 odgovora i 16 redova metrika. Pitanja i reference su isti, oba RAG testa dobila su potpuno identičan kontekst i izvore, a oba testa bez RAG-a prazan kontekst. Originalni prompt i 8-bitna podešavanja učitavanja su zadržani.
+
+[Detaljan izveštaj i CSV rezultati](../../results/README.md) objavljeni su kao dopuna seminarskim PDF-ovima. Izvorni rezultati u radovima ostaju sačuvani. Za pokretanje pogledaj [uputstvo](../../notebooks/README.md#running-the-new-evaluation).
+
+| Konfiguracija | ROUGE-L | BLEU | BERTScore F1 | Kosinusna sličnost |
+| --- | ---: | ---: | ---: | ---: |
+| Osnovni bez RAG-a | 0,0894 | 0,0047 | 0,6652 | 0,7172 |
+| Fino podešeni bez RAG-a | 0,1359 | 0,0096 | 0,6762 | 0,6974 |
+| Osnovni sa RAG-om | 0,3758 | 0,0130 | 0,7816 | 0,8995 |
+| Fino podešeni sa RAG-om | 0,2726 | 0,0113 | 0,7562 | 0,8529 |
+
+RAG poboljšava sve četiri prosečne metrike kod oba modela. Uz isti RAG, osnovni model ima više prosečne vrednosti svih metrika; ovaj mali uzorak ne pokazuje korist od dodatnog finog podešavanja u tim uslovima. To nije opšti zaključak o fine-tuningu niti potvrda činjenične tačnosti osnovnog modela. Oba modela i dalje imaju jezičke greške, nepotpune odgovore i nedosledno praćenje instrukcija.
+
+Četiri pitanja su korišćena tokom razvoja i nisu nezavisan test skup. Bez konteksta je odbijanje odgovora ispravno prema originalnom promptu, pa se takvo ponašanje ne može ocenjivati samo sličnošću sa referentnim odgovorom. Kvantizacija je fiksna i njen efekat nije izmeren. U osnovnom notebooku ostalo je upozorenje o konfliktu verzije `requests`; završeno izvršavanje ne znači da je celo okruženje bez konflikata zavisnosti.
+
 ## Dalji razvoj
 
-Prvi planirani eksperiment je **osnovni model + RAG naspram fino podešenog modela + identičan RAG**. Treba koristiti ista pitanja, promptove, pronađene isečke, preciznost modela i parametre generisanja, uz resetovanje istorije između nezavisnih slučajeva. Porediti činjeničnu tačnost, potpunost, kvalitet srpskog jezika i praćenje instrukcija. Ovo kontrolisano poređenje još nije sprovedeno; potrebno je da bi se izdvojio doprinos dodatnog finog podešavanja. Zasebno poređenje celih sistema zatim može obuhvatiti uticaj modela na reformulisanje upita iz istorije razgovora i samu pretragu.
-
-Prioriteti su veći nezavisno anotiran test skup, stručna procena činjenične tačnosti, kontrolisano poređenje četiri kombinacije osnovnog/fino podešenog modela sa/bez RAG-a, metrike prilagođene pismima i čišćenje podataka. Dalji eksperimenti mogu obuhvatiti usklađivanje promptova za obuku i inferenciju, hibridnu pretragu, eksplicitno prosleđivanje metapodataka, dodatno rangiranje i promenljivu dubinu pretrage.
+Sledeći korak je proširenje završenog poređenja na veći nezavisan skup, uz stručnu procenu tačnosti, potpunosti i praćenja instrukcija, oba pisma i beleženje tačnih verzija okruženja i modela. Ostali prioriteti su čišćenje podataka za obuku, ciljaniji primeri za prilagođavanje modela, usklađivanje formata obuke i inferencije, hibridna pretraga, jasni metapodaci o leku i dodatno rangiranje isečaka. Razgovorne primere sa reformulisanjem upita treba posmatrati kao zasebno poređenje celog sistema.
 
 ## Licenciranje
 

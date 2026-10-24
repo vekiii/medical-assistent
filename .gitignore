@@ -35,4 +35,14 @@ Thumbs.db
 *.doc
 ~$*
 
-./summary.md
+# Local Colab export copies; reviewed results are published under results/
+/base/
+/finetuned/
+/evaluation_simple/
+/evaluation_runs/
+
+# Additional local credentials and temporary files
+.env.*
+!.env.example
+*.log
+*.tmp

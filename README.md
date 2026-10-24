@@ -14,6 +14,7 @@ The application works with Serbian queries and documents. The English edition pr
 | [Serbian paper — PDF](docs/sr/seminarski_rad.pdf) | Original submitted report, preserved unchanged |
 | [Serbian project guide](docs/sr/README.md) | Overview and reproduction instructions in Serbian |
 | [Project summary](summary.md) | Implementation contribution, technical choices, evaluation, and next steps |
+| [Follow-up evaluation and CSV results](results/README.md) | Completed four-condition comparison, 24 October 2026; findings and limitations |
 | [Hugging Face model](https://huggingface.co/vekiii/medical-assistent-serbian-model) | Model artifact location |
 | [Hugging Face Space](https://huggingface.co/spaces/vekiii/medical-assistant-serbian) | Experimental deployment; availability depends on its runtime and hardware quota |
 
@@ -28,7 +29,7 @@ The practical contribution is an implemented pipeline under limited GPU resource
 - Retrieval relevance is assigned by source PDF filename. A chunk from the expected leaflet may count as relevant without containing the answer.
 - The Pressing retrieval query includes “sirup”, whereas the generation query does not. These rows evaluate different inputs.
 - Semantic similarity does not establish factual accuracy. The default ROUGE tokenizer used by the notebook is not adapted to Serbian scripts.
-- The comparison does not isolate the effects of retrieval, fine-tuning, and quantization.
+- The original paper comparison does not isolate retrieval, fine-tuning, and quantization. The [follow-up](results/README.md) compares base/fine-tuned models with/without context at fixed 8-bit precision; quantization effects remain unmeasured.
 - **591 input fields contain the literal string `nan`**, which the training formatter includes in prompts. The original data and scores are retained to document the experiment; clean these placeholders before a new training run.
 
 ## Repository structure
@@ -47,7 +48,14 @@ The practical contribution is an implemented pipeline under limited GPU resource
 │   ├── 03_finetune_and_merge.ipynb
 │   ├── 04_build_retrieval_index.ipynb
 │   ├── 05_run_assistant.ipynb
-│   └── 06_evaluate.ipynb
+│   ├── 06_evaluate.ipynb
+│   ├── 07_evaluate.ipynb
+│   └── 08_evaluate_base.ipynb
+├── results/                         # Published follow-up findings and CSV exports
+│   ├── README.md
+│   ├── summary.csv
+│   ├── base/
+│   └── finetuned/
 ├── dataset_LoRA/
 │   ├── squad-sr-cyr.json
 │   ├── squad-sr-lat.json
@@ -95,16 +103,22 @@ See the [notebook guide](notebooks/README.md) for entry points, conversation bou
 | 4 | [04_build_retrieval_index.ipynb](notebooks/04_build_retrieval_index.ipynb) | Build the FAISS index from local leaflet PDFs |
 | 5 | [05_run_assistant.ipynb](notebooks/05_run_assistant.ipynb) | Load the model and index and run conversation examples |
 | 6 | [06_evaluate.ipynb](notebooks/06_evaluate.ipynb) | Evaluate retrieval and answers to isolated questions |
+| 7 | [07_evaluate.ipynb](notebooks/07_evaluate.ipynb) | Fine-tuned model: test 1 with RAG and test 2 without RAG |
+| 8 | [08_evaluate_base.ipynb](notebooks/08_evaluate_base.ipynb) | Base model in the same 8-bit configuration: test 3 without RAG and test 4 with RAG |
 
 Index creation is independent of fine-tuning. With existing model and index artifacts, start with `05_run_assistant.ipynb` after configuring dependencies and paths. The supplied index can be reused without rebuilding the source PDFs. Only load pickle index metadata from a trusted source; the notebook explicitly enables deserialization.
 
 Run cells in order and reset `chat_history` between independent conversations. The documented interface is notebook-based; Gradio imports and the Space link do not establish a verified production interface. New runs, particularly after cleaning data or changing dependencies, may differ from the recorded results.
 
+## Follow-up evaluation
+
+[Notebook 07](notebooks/07_evaluate.ipynb) and [notebook 08](notebooks/08_evaluate_base.ipynb) completed all four tests on 24 October 2026: 16 answers and 16 metric rows. Both RAG conditions received identical saved context and sources for every question; both no-RAG conditions received empty context. The original prompt and 8-bit loading settings were retained. See the [findings and source CSVs](results/README.md) and [execution guide](notebooks/README.md#running-the-new-evaluation). These results supplement the PDFs and do not replace their original experiment.
+
+RAG improved all four mean similarity metrics for both models on this pilot. With RAG, the base model scored higher than the fine-tuned model on all four mean metrics (BERTScore F1: 0.7816 versus 0.7562; ROUGE-L: 0.3758 versus 0.2726). This run does not demonstrate a benefit from the additional fine-tuning under these conditions. Both models still show factual, language and instruction-following failures. Appropriate refusal with empty context must be assessed separately from similarity to answer-bearing references. Four development questions do not support broad conclusions about fine-tuning or medical reliability.
+
 ## Further work
 
-The first planned experiment is **base model + RAG versus fine-tuned model + the same RAG**. Use identical test questions, prompts, retrieved passages, model precision, and decoding settings, with conversation history reset between independent cases. Compare factual correctness, completeness, Serbian-language quality, and instruction following. This controlled comparison has not yet been performed; it is needed to isolate the benefit of additional fine-tuning. A separate end-to-end comparison can then measure how each model affects history-aware query reformulation and retrieval.
-
-Priorities are a larger independently annotated test set, expert factual assessment, controlled comparisons of base/fine-tuned models with/without RAG, script-aware metrics, and training-data cleaning. Further experiments can examine matching training and inference prompt formats, hybrid retrieval, explicit medicine/source metadata, reranking, and adaptive retrieval depth.
+Priorities are extending the completed comparison to a larger independent test set, expert factual and instruction-following assessment, script-aware metrics, and training-data cleaning. Further experiments can examine matching training and inference prompt formats, targeted adaptation data, hybrid retrieval, explicit medicine/source metadata, reranking, and adaptive retrieval depth. A separate end-to-end comparison can measure history-aware query reformulation. Record exact environment and checkpoint versions in future runs; the completed base run retains a Colab `requests` dependency warning.
 
 ## Licensing
 
